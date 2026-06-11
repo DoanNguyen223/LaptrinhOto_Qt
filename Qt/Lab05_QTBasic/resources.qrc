@@ -1,0 +1,68 @@
+<RCC>
+    <qresource prefix="/new/img">
+        <file>img/Top Bar.png</file>
+        <file>img/Tacometer.png</file>
+        <file>img/SportCarFloorShadow.png</file>
+        <file>img/Speedometer.png</file>
+        <file>img/shade.png</file>
+        <file>img/Panel.png</file>
+    </qresource>
+    <qresource prefix="/new/icons">
+        <file>img/icons/Vector 2.svg</file>
+        <file>img/icons/feaul.svg</file>
+        <file>img/icons/desal.svg</file>
+        <file>img/icons/cloud.svg</file>
+        <file>img/icons/bottom.png</file>
+        <file>img/icons/right.svg</file>
+        <file>img/icons/left.svg</file>
+        <file>img/icons/Vector 2.png</file>
+        <file>img/icons/Vector 1.svg</file>
+        <file>img/icons/Vector 1.png</file>
+    </qresource>
+    <qresource prefix="/new/icons-left">
+        <file>img/icons/icons-left/ph_engine-bold.svg</file>
+        <file>img/icons/icons-left/mdi_oil.svg</file>
+        <file>img/icons/icons-left/mdi_car-tire-alert.svg</file>
+        <file>img/icons/icons-left/mdi_car-handbrake.svg</file>
+        <file>img/icons/icons-left/mdi_car-battery.svg</file>
+        <file>img/icons/icons-left/icon-park-solid_right-two.svg</file>
+    </qresource>
+    <qresource prefix="/new/icons-right">
+        <file>img/icons/icons-right/mdi_seatbelt.svg</file>
+        <file>img/icons/icons-right/mdi_car-light-high.svg</file>
+        <file>img/icons/icons-right/mdi_car-light-fog.svg</file>
+        <file>img/icons/icons-right/mdi_car-light-dimmed.svg</file>
+        <file>img/icons/icons-right/mdi_car-brake-parking.svg</file>
+        <file>img/icons/icons-right/icon-park-solid_right-two.svg</file>
+    </qresource>
+    <qresource prefix="/new/Road">
+        <file>img/icons/Road/ss.svg</file>
+        <file>img/icons/Road/SpeedLimit.svg</file>
+        <file>img/icons/Road/road3.svg</file>
+        <file>img/icons/Road/road2.png</file>
+        <file>img/icons/Road/road.png</file>
+        <file>img/icons/Road/mingcute_steering-wheel-fill.svg</file>
+        <file>img/icons/Road/mdi_turn-right-bold.svg</file>
+        <file>img/icons/Road/mdi_map-marker-outline.svg</file>
+        <file>img/icons/Road/mdi_clock-time-four-outline.svg</file>
+        <file>img/icons/Road/Frame 33.png</file>
+        <file>img/icons/Road/car.png</file>
+        <file>img/icons/Road/carRoad.svg</file>
+    </qresource>
+    <qresource prefix="/new/icons-left-checked">
+        <file>img/icons/icons-left-checked/ph_engine-bold.svg</file>
+        <file>img/icons/icons-left-checked/mdi_oil.svg</file>
+        <file>img/icons/icons-left-checked/mdi_car-tire-alert.svg</file>
+        <file>img/icons/icons-left-checked/mdi_car-handbrake.svg</file>
+        <file>img/icons/icons-left-checked/mdi_car-battery.svg</file>
+        <file>img/icons/icons-left-checked/icon-park-solid_right-two.svg</file>
+    </qresource>
+    <qresource prefix="/new/icons-right-checked">
+        <file>img/icons/icons-right-checked/mdi_seatbelt.svg</file>
+        <file>img/icons/icons-right-checked/mdi_car-light-high.svg</file>
+        <file>img/icons/icons-right-checked/mdi_car-light-fog.svg</file>
+        <file>img/icons/icons-right-checked/mdi_car-light-dimmed.svg</file>
+        <file>img/icons/icons-right-checked/mdi_car-brake-parking.svg</file>
+        <file>img/icons/icons-right-checked/icon-park-solid_right-two.svg</file>
+    </qresource>
+</RCC>

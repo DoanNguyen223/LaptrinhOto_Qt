@@ -1,0 +1,540 @@
+import QtQuick 6.5
+import QtQuick.Controls 6.5
+import QtQuick.Layouts 6.5
+import QtQuick.Window 6.5
+import "./"
+
+ApplicationWindow {
+    id: appWindow
+    width: 1920
+    height: 960
+    visible: true
+    title: qsTr("Advanced Neon EV Dashboard - Professional HMI")
+    color: "#000000"
+
+    // === DASHBOARD DATA (TỪ ESP32) ===
+       property real currentSpeed: carSystem.speed              // ← ESP32: Biến trở 1 (0-180 km/h)
+       property int currentRPM: carSystem.rpm                   // ← ESP32: Calculated (speed * 50)
+       property real engineTemp: carSystem.temperature          // ← ESP32: Calculated from speed
+       property real currentFuel: carSystem.xang                // ← ESP32: Biến trở 2 (0-100%)
+
+       // === ÁP SUẤT LỐP (TỪ ESP32) ===
+       property real tirePressureFL: carSystem.tirePressureFL   // ← ESP32: Biến trở 3 (2.0-2.8 bar)
+       property real tirePressureFR: carSystem.tirePressureFR   // ← ESP32: Biến trở 3 (cùng giá trị)
+       property real tirePressureRL: carSystem.tirePressureRL   // ← ESP32: Biến trở 3 (cùng giá trị)
+       property real tirePressureRR: carSystem.tirePressureRR   // ← ESP32: Biến trở 3 (cùng giá trị)
+
+       // === CONTROL SIGNALS (NÚT NHẤN) ===
+       property bool leftSignal: carSystem.leftSignal           // ← ESP32: BTN_LEFT
+       property bool rightSignal: carSystem.rightSignal         // ← ESP32: BTN_RIGHT
+       property string gear: carSystem.dau ? "D" : "P"          // ← ESP32: BTN_DAU (1=D, 0=P)
+       property bool hornActive: carSystem.denCavang            // ← ESP32: BTN_DENCAVANG
+       property bool absActive: carSystem.abs                   // ← ESP32: BTN_ABS
+
+       // === TOGGLE BUTTONS ===
+       property bool lowBeamActive: carSystem.pha               // ← ESP32: BTN_PHA (toggle)
+       property bool seatbeltWarning: !carSystem.dayAnToan      // ← ESP32: BTN_DAYAN (toggle - 0=WARNING)
+       property bool roadSlippery: carSystem.duongtron          // ← ESP32: BTN_DUONGTRON (toggle)
+
+       // === WARNINGS ===
+       property bool speedWarning: carSystem.denCanhbao         // ← ESP32: Auto LED (speed >= 100)
+       property bool obstacleDetected: carSystem.obstacleDetected  // ← ESP32: HC-SR04 (< 30cm)
+       property int distanceCm: carSystem.distanceCm            // ← ESP32: HC-SR04 distance
+
+       // === CALCULATED VALUES (LOCAL) ===
+       property real currentPower: (currentSpeed * 2.5) / efficiencyRating
+       property real currentBattery: 67  // ✅ GIỮ CHO DASHBOARD (không liên quan fuel)
+       property int nextSpeedTarget: 0
+
+       // === LOCAL UI STATES (KHÔNG TỪ ESP32) ===
+       property bool hazardActive: false
+       property bool rareFogLightActive: false
+       property real roadAnimOffset: 0
+       property real targetTemp: 75.0
+       property bool isCooling: false
+
+       // Advanced Features
+       property string driveMode: "Normal"
+       property bool isCharging: false
+       property real chargingBreathe: 0.5
+       property color accentColor: "#00FFFF"
+
+       // Theme & Language
+       property bool isDarkTheme: true
+       property string currentLanguage: "EN"
+
+       // Road Conditions (KHÔNG DÙNG - đã có từ ESP32)
+       property bool roadWet: false
+       property bool roadIcy: false
+
+       // Efficiency & Warning
+       property real efficiencyRating: 1.0
+       property int warningLevel: 0
+       property bool signalBlinkState: false
+
+       // References
+       property var speedGauge: null
+       property var leftGauge: null
+       property var rightGauge: null
+       property var currentTimeLabel: null
+       property var currentDateLabel: null
+
+    // ✅ THÊM: Connection Status Display
+    Rectangle {
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.margins: 10
+        width: 250
+        height: 60
+        color: carSystem.connected ? "#00330033" : "#33000033"
+        border.color: carSystem.connected ? "#00FF00" : "#FF0000"
+        border.width: 2
+        radius: 10
+        z: 1000
+
+        Row {
+            anchors.centerIn: parent
+            spacing: 15
+
+            // Connection LED
+            Rectangle {
+                width: 20
+                height: 20
+                radius: 10
+                color: carSystem.connected ? "#00FF00" : "#FF0000"
+
+                SequentialAnimation on opacity {
+                    running: carSystem.connected
+                    loops: Animation.Infinite
+                    NumberAnimation { to: 0.3; duration: 1000 }
+                    NumberAnimation { to: 1.0; duration: 1000 }
+                }
+            }
+
+            Column {
+                spacing: 2
+
+                Text {
+                    text: carSystem.connected ? "ESP32 CONNECTED" : "ESP32 DISCONNECTED"
+                    color: carSystem.connected ? "#00FF00" : "#FF0000"
+                    font.pixelSize: 14
+                    font.bold: true
+                    font.family: "Arial"
+                }
+
+                Text {
+                    text: carSystem.connected ? "Live Data Active" : "Waiting for device..."
+                    color: carSystem.connected ? "#00FFFF" : "#FF6666"
+                    font.pixelSize: 10
+                    font.family: "Arial"
+                }
+            }
+        }
+    }
+
+    // ===== LOGIC FUNCTIONS =====
+    function updateAccentColor() {
+        if (driveMode === "Sport") accentColor = "#FF3333"
+        else if (driveMode === "Eco") accentColor = "#00FF99"
+        else accentColor = "#00FFFF"
+    }
+
+    function getDriveModeStats() {
+        switch(driveMode) {
+            case "Sport": return { torque: 1.3, efficiency: 0.8, topSpeed: 250 }
+            case "Eco": return { torque: 0.8, efficiency: 1.2, topSpeed: 180 }
+            default: return { torque: 1.0, efficiency: 1.0, topSpeed: 220 }
+        }
+    }
+
+    // ===== TIMERS & ANIMATIONS =====
+    Timer {
+        id: signalBlinkTimer
+        interval: 500
+        repeat: true
+        running: leftSignal || rightSignal || hazardActive
+        onTriggered: signalBlinkState = !signalBlinkState
+    }
+
+    Timer {
+        id: signalAutoCancel
+        interval: 3000
+        repeat: false
+        // ✅ SỬA: Không tự động tắt xi nhan vì ESP32 điều khiển
+        onTriggered: {
+            if (!hazardActive && !carSystem.connected) {
+                leftSignal = false
+                rightSignal = false
+            }
+        }
+    }
+
+    SequentialAnimation {
+        id: breathingAnimation
+        loops: Animation.Infinite
+        running: isCharging
+        NumberAnimation {
+            target: appWindow
+            property: "chargingBreathe"
+            from: 0.3
+            to: 1.0
+            duration: 1500
+            easing.type: Easing.InOutQuad
+        }
+        NumberAnimation {
+            target: appWindow
+            property: "chargingBreathe"
+            from: 1.0
+            to: 0.3
+            duration: 1500
+            easing.type: Easing.InOutQuad
+        }
+    }
+
+    // ===== PHYSICS LOOP (60 FPS) =====
+    // ✅ SỬA: Xóa phần gán currentFuel vì đã bind với ESP32
+    Timer {
+        interval: 16
+        running: true
+        repeat: true
+        onTriggered: {
+            let stats = getDriveModeStats()
+            // Bỏ consumption rate vì currentFuel đến từ ESP32
+            // let consumptionRate = (currentSpeed * 0.00008) + (currentPower * 0.00001)
+            // currentFuel = Math.max(0, currentFuel - consumptionRate)
+            roadAnimOffset = (roadAnimOffset + currentSpeed * 0.15) % 50
+
+            // Update gauges (nếu cần)
+            if (leftGauge) leftGauge.value = currentPower
+            if (rightGauge) rightGauge.value = currentFuel
+        }
+    }
+
+    // Autopilot Simulation (chỉ khi KHÔNG kết nối ESP32)
+    Timer {
+        interval: 3000
+        running: !carSystem.connected  // ✅ Chỉ chạy khi không có ESP32
+        repeat: true
+        onTriggered: {
+            if (speedGauge && !speedGauge.accelerating && gear === "D" && !isCharging) {
+                let stats = getDriveModeStats()
+                nextSpeedTarget = Math.floor(Math.random() * stats.topSpeed * 0.8)
+            }
+        }
+    }
+
+    // Clock Update
+    Timer {
+        interval: 1000
+        running: true
+        repeat: true
+        onTriggered: {
+            if (currentTimeLabel) currentTimeLabel.text = Qt.formatDateTime(new Date(), "HH:mm")
+            if (currentDateLabel) currentDateLabel.text = Qt.formatDateTime(new Date(), "dd/MM/yyyy")
+        }
+    }
+
+    // Keyboard Shortcuts
+    Shortcut { sequence: "Ctrl+Q"; onActivated: Qt.quit() }
+    Shortcut { sequence: "I"; onActivated: screenStack.push(iviScreenComponent) }
+
+    // ✅ THÊM: Debug shortcuts
+    Shortcut {
+        sequence: "Ctrl+D"
+        onActivated: {
+            console.log("=== ESP32 Debug Info ===")
+            console.log("Connected:", carSystem.connected)
+            console.log("Speed:", carSystem.speed)
+            console.log("RPM:", carSystem.rpm)
+            console.log("Temperature:", carSystem.temperature)
+            console.log("Fuel:", carSystem.xang)
+            console.log("Left Signal:", carSystem.leftSignal)
+            console.log("Right Signal:", carSystem.rightSignal)
+            console.log("Engine:", carSystem.dau)
+            console.log("ABS:", carSystem.abs)
+            console.log("High Beam:", carSystem.pha)
+            console.log("Seatbelt:", carSystem.dayAnToan)
+            console.log("Speed Warning:", carSystem.denCanhbao)
+            console.log("Tire FL:", carSystem.tirePressureFL)
+            console.log("Tire FR:", carSystem.tirePressureFR)
+            console.log("Tire RL:", carSystem.tirePressureRL)
+            console.log("Tire RR:", carSystem.tirePressureRR)
+        }
+    }
+
+    // ✅ XÓA: Không cần simulate tire pressure vì đã có từ ESP32
+    // Timer {
+    //     interval: 5000
+    //     running: true
+    //     repeat: true
+    //     onTriggered: {
+    //         tirePressureFL += (Math.random() - 0.5) * 0.05
+    //         ...
+    //     }
+    // }
+
+    // ===== SCREEN MANAGEMENT =====
+    StackView {
+        id: screenStack
+        anchors.fill: parent
+        initialItem: dashboardScreen
+
+        replaceEnter: Transition { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 300 } }
+        replaceExit: Transition { NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 300 } }
+        pushEnter: Transition { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 300 } }
+        pushExit: Transition { NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 300 } }
+        popEnter: Transition { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 300 } }
+        popExit: Transition { NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 300 } }
+
+        Component {
+            id: dashboardScreen
+            DashboardScreen {
+                // ✅ XÓA: onOpenSettings signal
+                // onOpenSettings: {
+                //     screenStack.push(settingsScreen)
+                //     screenStack.currentItem.forceActiveFocus()
+                // }
+            }
+        }
+
+        // ✅ XÓA HOÀN TOÀN: settingsScreen Component
+        // Component {
+        //     id: settingsScreen
+        //     SettingsPanel {
+        //         ...
+        //     }
+        // }
+
+        Component {
+            id: iviScreenComponent
+            IVIScreen {
+                speed: appWindow.currentSpeed
+                fuel: appWindow.currentFuel
+                tirePressureFL: appWindow.tirePressureFL
+                tirePressureFR: appWindow.tirePressureFR
+                tirePressureRL: appWindow.tirePressureRL
+                tirePressureRR: appWindow.tirePressureRR
+                slipperyRoadWarning: appWindow.roadSlippery
+
+                onCloseIVI: {
+                    screenStack.pop()
+                    if (screenStack.currentItem) screenStack.currentItem.forceActiveFocus()
+                }
+            }
+        }
+    }
+
+    // ===== IVI BUTTON =====
+    Rectangle {
+        width: 80
+        height: 80
+        radius: 40
+        color: "#1A1A1A"
+        border.color: appWindow.accentColor
+        border.width: 3
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 30
+        anchors.left: parent.left
+        anchors.leftMargin: 30
+        z: 100
+        visible: screenStack.depth === 1
+
+        Column {
+            anchors.centerIn: parent
+            spacing: 2
+
+            Image {
+                source: "qrc:/assets/settings-960.svg"  // ✅ ĐÚNG
+                width: 32
+                height: 32
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
+
+            Text {
+                text: "IVI"
+                font.pixelSize: 14
+                font.bold: true
+                color: appWindow.accentColor
+                anchors.horizontalCenter: parent.horizontalCenter
+                font.family: "Arial"
+            }
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: screenStack.push(iviScreenComponent)
+            cursorShape: Qt.PointingHandCursor
+        }
+
+        scale: iviButtonMouse.containsMouse ? 1.1 : 1.0
+        Behavior on scale { NumberAnimation { duration: 200 } }
+
+        SequentialAnimation on opacity {
+            loops: Animation.Infinite
+            NumberAnimation { to: 0.7; duration: 2000 }
+            NumberAnimation { to: 1.0; duration: 2000 }
+        }
+
+        HoverHandler { id: iviButtonMouse }
+    }
+
+    // ✅ THÊM: ESP32 Debug Panel (Ctrl+Shift+D để toggle)
+    Rectangle {
+        id: debugPanel
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.margins: 10
+        width: 350
+        height: 500
+        color: "#1A1A1A"
+        border.color: "#00FFFF"
+        border.width: 2
+        radius: 10
+        z: 999
+        visible: false  // Toggle bằng Ctrl+Shift+D
+
+        Column {
+            anchors.fill: parent
+            anchors.margins: 15
+            spacing: 8
+
+            Text {
+                text: "🔧 ESP32 DEBUG"
+                color: "#00FFFF"
+                font.pixelSize: 16
+                font.bold: true
+            }
+
+            Rectangle { width: parent.width; height: 1; color: "#333333" }
+
+            Text {
+                text: "Connection: " + (carSystem.connected ? "✅ LIVE" : "❌ OFFLINE")
+                color: carSystem.connected ? "#00FF00" : "#FF0000"
+                font.pixelSize: 12
+            }
+
+            Text {
+                text: "Speed: " + carSystem.speed + " km/h"
+                color: "#FFFFFF"
+                font.pixelSize: 12
+            }
+
+            Text {
+                text: "RPM: " + carSystem.rpm
+                color: "#FFFFFF"
+                font.pixelSize: 12
+            }
+
+            Text {
+                text: "Temp: " + carSystem.temperature.toFixed(1) + "°C"
+                color: "#FFFFFF"
+                font.pixelSize: 12
+            }
+
+            Text {
+                text: "Fuel: " + carSystem.xang + "%"
+                color: "#FFFFFF"
+                font.pixelSize: 12
+            }
+
+            Rectangle { width: parent.width; height: 1; color: "#333333" }
+
+            Text {
+                text: "Left Signal: " + (carSystem.leftSignal ? "🟢 ON" : "⚫ OFF")
+                color: carSystem.leftSignal ? "#00FF00" : "#666666"
+                font.pixelSize: 12
+            }
+
+            Text {
+                text: "Right Signal: " + (carSystem.rightSignal ? "🟢 ON" : "⚫ OFF")
+                color: carSystem.rightSignal ? "#00FF00" : "#666666"
+                font.pixelSize: 12
+            }
+
+            Text {
+                text: "Engine: " + (carSystem.dau ? "🟢 ON" : "⚫ OFF")
+                color: carSystem.dau ? "#00FF00" : "#666666"
+                font.pixelSize: 12
+            }
+
+            Text {
+                text: "ABS: " + (carSystem.abs ? "🟡 ACTIVE" : "⚫ OFF")
+                color: carSystem.abs ? "#FFFF00" : "#666666"
+                font.pixelSize: 12
+            }
+
+            Text {
+                text: "Horn: " + (carSystem.denCavang ? "🟡 ACTIVE" : "⚫ OFF")
+                color: carSystem.denCavang ? "#FFFF00" : "#666666"
+                font.pixelSize: 12
+            }
+
+            Text {
+                text: "High Beam: " + (carSystem.pha ? "🔵 ON" : "⚫ OFF")
+                color: carSystem.pha ? "#0088FF" : "#666666"
+                font.pixelSize: 12
+            }
+
+            Text {
+                text: "Seatbelt: " + (carSystem.dayAnToan ? "🔴 WARNING" : "🟢 OK")
+                color: carSystem.dayAnToan ? "#FF0000" : "#00FF00"
+                font.pixelSize: 12
+            }
+
+            Text {
+                text: "Road Slippery: " + (carSystem.duongtron ? "🟡 YES" : "⚫ NO")
+                color: carSystem.duongtron ? "#FFFF00" : "#666666"
+                font.pixelSize: 12
+            }
+
+            Text {
+                text: "Speed Warning: " + (carSystem.denCanhbao ? "🔴 ALERT" : "⚫ OFF")
+                color: carSystem.denCanhbao ? "#FF0000" : "#666666"
+                font.pixelSize: 12
+            }
+
+            Rectangle { width: parent.width; height: 1; color: "#333333" }
+
+            Text {
+                text: "Tire FL: " + carSystem.tirePressureFL.toFixed(2) + " bar"
+                color: "#FFFFFF"
+                font.pixelSize: 12
+            }
+
+            Text {
+                text: "Tire FR: " + carSystem.tirePressureFR.toFixed(2) + " bar"
+                color: "#FFFFFF"
+                font.pixelSize: 12
+            }
+
+            Text {
+                text: "Tire RL: " + carSystem.tirePressureRL.toFixed(2) + " bar"
+                color: "#FFFFFF"
+                font.pixelSize: 12
+            }
+
+            Text {
+                text: "Tire RR: " + carSystem.tirePressureRR.toFixed(2) + " bar"
+                color: "#FFFFFF"
+                font.pixelSize: 12
+            }
+
+            Text {
+                text: "Distance: " + carSystem.distanceCm + " cm"
+                color: "#FFFFFF"
+                font.pixelSize: 12
+            }
+
+            Text {
+                text: "Obstacle: " + (carSystem.obstacleDetected ? "🔴 DETECTED" : "⚫ CLEAR")
+                color: carSystem.obstacleDetected ? "#FF0000" : "#666666"
+                font.pixelSize: 12
+            }
+        }
+    }
+
+    Shortcut {
+        sequence: "Ctrl+Shift+D"
+        onActivated: debugPanel.visible = !debugPanel.visible
+    }
+}

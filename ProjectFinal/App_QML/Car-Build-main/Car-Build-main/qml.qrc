@@ -1,0 +1,86 @@
+<RCC>
+    <qresource prefix="/">
+        <file>main.qml</file>
+        <file>assets/Dashboard.svg</file>
+        <file>assets/Vector 70.svg</file>
+        <file>assets/Low beam headlights.svg</file>
+        <file>assets/Vector 1.svg</file>
+        <file>assets/Vector 2.svg</file>
+        <file>assets/FirstRightIcon.svg</file>
+        <file>assets/FourthRightIcon.svg</file>
+        <file>assets/Lights.svg</file>
+        <file>assets/Parking lights.svg</file>
+        <file>assets/Rare fog lights.svg</file>
+        <file>assets/SecondRightIcon.svg</file>
+        <file>assets/thirdRightIcon.svg</file>
+        <file>assets/car.png</file>
+        <file>assets/fuel.svg</file>
+        <file>assets/road.svg</file>
+        <file>assets/speedometer.svg</file>
+        <file>Gauge.qml</file>
+        <file>assets/background.png</file>
+        <file>assets/background.svg</file>
+        <file>assets/needle.svg</file>
+        <file>assets/tickmark.svg</file>
+        <file>assets/newcar.svg</file>
+        <file>assets/Car.svg</file>
+        <file>assets/Model 3.svg</file>
+        <file>assets/Model 3.png</file>
+        <file>assets/Light_White.svg</file>
+        <file>assets/Parking_lights_white.svg</file>
+        <file>assets/Low_beam_headlights_white.svg</file>
+        <file>assets/Rare_fog_lights_red.svg</file>
+        <file>assets/FirstRightIcon_grey.svg</file>
+        <file>assets/SecondRightIcon_red.svg</file>
+        <file>assets/thirdRightIcon_red.svg</file>
+        <file>assets/FourthRightIcon_red.svg</file>
+        <file>SideGauge.qml</file>
+        <file>img/background.png</file>
+        <file>img/background.svg</file>
+        <file>img/cirlcle.svg</file>
+        <file>img/Ellipse 1.svg</file>
+        <file>img/Ellipse 5.svg</file>
+        <file>img/Ellipse 6.svg</file>
+        <file>img/maxLimit.svg</file>
+        <file>img/needle.svg</file>
+        <file>img/Rectangle 4.svg</file>
+        <file>img/ring.svg</file>
+        <file>img/sub.svg</file>
+        <file>img/Subtract.svg</file>
+        <file>img/tickmark.svg</file>
+        <file>assets/abc.png</file>
+        <file>assets/abcc.png</file>
+        <file>assets/Car.png</file>
+        <file>assets/Dashboard.png</file>
+        <file>assets/FirstRightIcon.png</file>
+        <file>assets/FourthRightIcon.png</file>
+        <file>assets/fuel.png</file>
+        <file>assets/Lights.png</file>
+        <file>assets/LowBeamWhite.png</file>
+        <file>assets/M77JX2K0.jpeg</file>
+        <file>assets/ParkingLights.png</file>
+        <file>assets/RareFogLights.png</file>
+        <file>assets/road.png</file>
+        <file>assets/SecondRightIcon.png</file>
+        <file>assets/ThirdRightIcon.png</file>
+        <file>assets/Vector1.png</file>
+        <file>assets/Vector2.png</file>
+        <file>assets/Vector70.png</file>
+        <file>assets/-FqT7hM9.jpeg</file>
+        <file>assets/gN1PvUb6.jpeg</file>
+        <file>assets/engine.png</file>
+        <file>assets/enginee.png</file>
+        <file>assets/eengine.png</file>
+        <file>assets/engineer.png</file>
+        <file>assets/duongtron.jpg</file>
+        <file>assets/apsuatlop.svg</file>
+        <file>assets/canhbaotocdo.jpg</file>
+        <file>assets/daudongco.svg</file>
+        <file>assets/settings-960.svg</file>
+        <file>assets/duongtron.svg</file>
+        <file>assets/gioihantocdo.svg</file>
+        <file>assets/khoangcach.svg</file>
+        <file>DashboardScreen.qml</file>
+        <file>IVIScreen.qml</file>
+    </qresource>
+</RCC>
